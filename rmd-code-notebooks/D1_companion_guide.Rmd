@@ -9,14 +9,13 @@ output:
 
 # 0. Setup
 
-The first chunk below is the code from Brightspace to install the required packages. 
-BEFORE you run it: please make a folder  the "Files" tab in the bottom right of RStudio is a folder where you will work out of for the assignment. In class we made one called `ds_iai` and opened a new R Markdown file inside it.
-
 ```{r, chunk-0}
 # wd = working directory 
-# directory is a fancy word for folder
 getwd() # where are we working from?
 ```
+
+The chunk below is the code from Brightspace to install the required packages. 
+BEFORE you run it: please make a folder  the "Files" tab in the bottom right of RStudio is a folder where you will work out of for the assignment. In class we made one called `ds_iai` and opened a new R Markdown file inside it.
 
 ```{r, chunk-0.1}
 # 2.1 install the groundhog package and other packages needed for the course
@@ -31,10 +30,7 @@ library(groundhog)
 groundhog.library(c('here','tidyverse'), "2025-10-01")
 ```
 
-Some of you had issues with the `groundhog` package. If that's you: please forget about the `groundhog` package.
-This package only serves to help keep the other packages (software libraries) using a correct and consistent version.
-
-As long as you have the `tidyverse` and `here` packages installed (and your versions aren't really old) -- you should be fine.
+Some of you had issues with the `groundhog` package. If that's you: please forget about the `groundhog` package. As long as you have the `tidyverse` and `here` packages installed (and your versions aren't really old) -- you should be fine. Try uncommenting and running the code below if you're (still) having issues.
 
 ```{r, chunk-0.2}
 # if that still doesn't work: just make sure you have the tidyverse and here packages installed
@@ -50,9 +46,11 @@ As long as you have the `tidyverse` and `here` packages installed (and your vers
 # 1. Variables and vectors
 
 There are several "types" of variables in R, 
-- chr: characters or "strings"
-- num: numeric, can be either integers (1, 2, 3) or double (1, 1.21), sometimes called a "continuous" variable
-- fct: factor, a categorical variable which can be chr or num type! sometimes called a "discrete" variable
+
+- `chr`: characters or "strings"
+- `num`: numeric, can be either integers (1, 2, 3) or double (1, 1.21), sometimes called a "continuous" variable
+- `fct`: factor, a categorical variable which can be chr or num type! sometimes called a "discrete" variable
+- `lgl`: boolean, value can be either true or false
 
 We'll explore these more when we look at real clinical patient data in the next days.
 
@@ -86,7 +84,7 @@ PS: in general, it's better to give variables informative names! (Not x and y)
 
 Operators and functions are two critical concepts to "do" things in R. Operators are symbols that perform specific actions, while functions are named commands that take inputs (called "arguments") in parentheses, and do more complex tasks.
 
-We started the coding demo on day 1 with a function -- `getwd()`, followed by `here()`, which does virtually the same thing. The five lines under "# how to learn about your variables" in the code chunk above are also functions.
+We started the coding demo on day 1 with a function -- `getwd()`. The five lines under "# how to learn about your variables" in the code chunk above are also functions.
 
 We also discussed a few operators, which you'll be comfortable with by the end of the assignment:
 
@@ -117,7 +115,7 @@ Tip: one final operator that is less common (not part of this assignment) but us
 
 # 3. Data frames and tibbles
 
-Data frames are the most common data structure you'll encounter doing real data analysis in R -- think of it as the R version of an Excel table. It is similar to a matrix in that it also has row and column attributes, but 
+Data frames are the most common data structure you'll encounter doing real data analysis in R -- think of it as the R version of an Excel table. It is similar to a matrix in that it also has row and column attributes, but different in that its columns, for example, can be of multiple data types (only 1 for matrices).
 
 There are several built-in datasets in R: `mtcars` (cars) and `iris` (flowers) are two of the most popular. In class and in the example we worked with `mtcars` -- complete the chunks below with `iris` for a bit more of a challenge.
 
@@ -153,14 +151,15 @@ cars <- df |>
   rownames_to_column(var = "car_model") |>
   as_tibble()
 
+# no need to use head() to print a tibble - it always prints the first 10 rows and that's it
 cars
 ```
 
-## Core verbs
+## Core data manipulation functions
 
 Now think back to an Excel table -- what are some things you do with one of those when you're looking for something? Think of some verbs, imagine typing those instructions out to someone... The `tidyverse` functions for manipulating data in R are designed to be intuitive. 
 
-The core four:
+The core four from the `dplyr` package within the `tidyverse`:
 
 - `select()` selects whichever columns you tell it, either by name or index (number)
 - `filter()` filters based on whatever criteria you give it (based on the columns you actually have or make)
@@ -169,7 +168,7 @@ The core four:
 
 Often, we will use these in combination with one another, and/or one after another, which is why the pipe operator (|> or %>%) becomes so handy.
 
-Fun fact: the pipe operator is possible because the functions we will learn in the `tidyverse` are standardized to take data frames as the first argument (input variable). (Confirm this and answer some questions for your future self by typing `?select` !)
+Fun fact: the pipe operator is possible because the functions we will learn in the `tidyverse` are standardized to take data frames as the first argument (input variable). (Confirm this by typing `?select`, what's the first argument)
 
 ```{r chunk-3.3}
 # select/filter/mutate examples - play around with these!
@@ -263,18 +262,20 @@ ggsave(filename = name_to_save, plot = p, width = 5, height = 5)
 
 # Exercises: Penguins (Data Frames & Visualizations)
 
+Tip: you may want to copy these into a new R Markdown document to avoid lots of scrolling...
+
 Use the same verbs and plotting steps from today: `select()`, `filter()`, `mutate()`, `arrange()`, and `ggplot()` + `geom_xxx()` + `labs()`.
 
 It’s OK if plots print messages about removed rows — the dataset has some missing values.
 
 ## 1) Quick scan (structure & missingness)
 
+First, save the `penguins` dataset as a tibble to a variable name of your choosing.
 How many rows/columns are in `penguins`?
 Which variables are numeric vs. categorical?
 Which columns visibly include missing (NA) values?
 
 ```{r}
-penguins
 head(penguins)
 ```
 
