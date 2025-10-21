@@ -1,7 +1,9 @@
-> **Today:** set up folders, load packages, introduction to R variables
-> and data structures, data frames and tibbles, key data manipulation
-> verbs (`select`, `filter`, `mutate`, and `arrange`), and some basic
-> plots.
+> **Contents:** set up folders, load packages, introduction to R
+> variables and data structures, data frames and tibbles, key data
+> manipulation verbs (`select`, `filter`, `mutate`, and `arrange`), and
+> some basic plots.
+
+> Scroll to the bottom for the exercises.
 
 # 0. Setup
 
@@ -347,8 +349,8 @@ handy.
 
 Fun fact: the pipe operator is possible because the functions we will
 learn in the `tidyverse` are standardized to take data frames as the
-first argument (input variable). (Confirm this and answer some questions
-for your future self by typing `?select` !)
+first argument (input variable). (Confirm this by typing `?select`,
+what’s the first argument)
 
 ``` r
 # select/filter/mutate examples - play around with these!
