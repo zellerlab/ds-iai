@@ -1,0 +1,94 @@
+---
+title: "Day 1 Demo"
+date: "2025-10-20"
+output:
+  md_document:
+    variant: gfm
+---
+
+Setup:
+
+```{r}
+groundhog::groundhog.library(c('tidyverse','here'), "2025-10-01")
+
+# if that doesn't / didn't work, try the two below instead (comment line above out):
+# library(tidyverse)
+# library(here)
+
+results_path <- here::here("results", "day-1")
+
+dir.create(results_path, recursive = TRUE)
+```
+
+Basic variables and data structures:
+
+```{r}
+# variable assignment
+x <- "hello"
+
+# vectors
+y <- c("my", "first", "vector")
+z <- c(1, 2, 4, 7.2)
+w <- c(1, 2, 3)
+
+# basic functions
+typeof(z)
+class(z) 
+typeof(as.integer(w))
+length(y)
+length(z)
+
+mean_z <- mean(z)
+med_z <- median(z)
+
+# data frames and tibbles
+df <- data.frame(y = y, w = w)
+tbl <- tibble(y = y, w = w)
+```
+
+Data frame manipulations and building up to a plot:
+
+```{r}
+# library(tidyverse)
+
+# mtcars is a built-in dataset about cars
+# extra: https://www.robertmylesmcdonnell.com/posts/mtcars
+mtcars 
+class(mtcars) 
+dim(mtcars)
+glimpse(mtcars)
+rownames(mtcars)
+
+# make it a tibble
+mt_tbl <- mtcars |>
+  rownames_to_column(var = "car_model") |>
+  as_tibble()
+
+# why not this?
+as_tibble(mtcars)
+
+# core verbs
+df_small <- mt_tbl |>
+  select(car_model, mpg, cyl, hp) |>
+  filter(cyl %in% c(4, 6)) |>
+  mutate(hp_per_cyl = hp / cyl) |>
+  arrange(desc(mpg))
+
+# histogram - single variable plot 
+mt_tbl |>
+  ggplot(aes(x = mpg)) +
+  geom_histogram(bins = 30) +
+  labs(title = "Distribution of MPG", x="")
+
+# scatter plot
+my_plot <- mt_tbl |>
+  mutate(cyl = as.factor(cyl)) |>
+  ggplot(aes(x = hp, y = mpg)) +
+  geom_point(aes(color = cyl))
+
+# saving
+ggsave(filename = here(results_path, "d1_scatter_example.png"),
+       plot = my_plot, 
+       width = 5, height = 4, dpi = 300)
+```
+
