@@ -7,12 +7,23 @@
 
 # 0. Setup
 
+Make sure you are in the folder you are using for the data science
+assignment! If you are not, navigate to the correct folder using the
+Files tab of RStudio, and select “Set As Working Directory” from the
+blue gear menu. (You can also do this with `setwd()` where you give a
+string variable as input,
+e.g. `setwd('/Users/yourname/Desktop/ds_iai')`.)
+
 ``` r
 # wd = working directory 
 getwd() # where are we working from?
 ```
 
     ## [1] "/Users/sxmorgan/Desktop/ds_iai/rmd-code-notebooks"
+
+``` r
+?getwd # loads the function help 
+```
 
 The chunk below is the code from Brightspace to install the required
 packages. BEFORE you run it: please make a folder the “Files” tab in the
@@ -293,9 +304,10 @@ functionally equivalent to a data frame, but it makes viewing a little
 more pleasant (especially in the console), which will become important
 once we get into “bigger” data in the coming days.
 
-Data frames have rownames and tibbles don’t! So we have to use a special
-command, `rownames_to_column()` when saving one of the built-in datasets
-as a variable.
+Data frames have rownames and tibbles don’t! So if a data frame has
+information contained in its rownames which we would like to keep, we
+have to first use a special command, `rownames_to_column()` when saving
+one of the built-in datasets as a variable.
 
 ``` r
 # why not this?
@@ -303,7 +315,9 @@ as a variable.
 
 # correct way
 cars <- df |> 
+  # "take the rownames and turn them into a variable named car_model"
   rownames_to_column(var = "car_model") |>
+  # then make the data frame into a tibble class object
   as_tibble()
 
 # no need to use head() to print a tibble - it always prints the first 10 rows and that's it
@@ -398,15 +412,21 @@ call it) inside of the folder we are working in for the assignment,
 using the `here()` function to build up a filepath string.
 
 ``` r
-# here takes the strings that you give it and pastes them together to make a proper filename for your computer
+# the here function finds the folder you are currently in (like getwd())
+here()
+```
+
+    ## [1] "/Users/sxmorgan/Desktop/ds_iai"
+
+``` r
+# it also takes the strings that you give it and pastes them together to make a proper filename for your computer
 results_path <- here('results') # one folder
 results_path <- here('results','day-1') # subfolder, may need to add recursive=TRUE to dir.create
 
 # bonus: try timestamping your folders
-# today() is a function from the lubridate package (not part of core tidyverse) which we can still run thi
 # results_path <- here('results', lubridate::today())
 
-# whatever you decide to call it, check that results_path is a real filepath on your computer then create it
+# whatever you decide to call it, check that results_path is a real filepath on your computer and in your current working directory, then create it
 dir.create(results_path)
 ```
 
@@ -507,52 +527,268 @@ some missing values.
 
 ## 1) Quick scan (structure & missingness)
 
-First, save the `penguins` dataset as a tibble to a variable name of
-your choosing. How many rows/columns are in `penguins`? Which variables
-are numeric vs. categorical? Which columns visibly include missing (NA)
-values?
+1.1 First, save the `penguins` dataset as a tibble to a variable name of
+your choosing.
+
+1.2 How many rows/columns are in `penguins`?
+
+- Answer: 344 rows and 8 cols
+
+1.3 Which variables are numeric vs. categorical?
+
+- Numeric (int and dbl): `bill_len`,
+  `bill_dep`,`flipper_len`,`body_mass`,`year`
+- Categorical: `species`,`island`,`sex`
+
+1.4 Which columns visibly include missing (NA) values?
 
 ``` r
-head(penguins)
+# head(penguins)
+
+# 1.1 
+# since the penguins data frame does not have rownames, we can directly make it a tibble
+peng <- tibble(penguins)
+
+# 1.2 & 1.3 & 1.4
+# we can already read the number of rows and columns and the variable types when we print a tibble
+# we can also see the 4th row observation has some missing data, and some others are missing male/female info
+peng
 ```
 
-    ##   species    island bill_len bill_dep flipper_len body_mass    sex year
-    ## 1  Adelie Torgersen     39.1     18.7         181      3750   male 2007
-    ## 2  Adelie Torgersen     39.5     17.4         186      3800 female 2007
-    ## 3  Adelie Torgersen     40.3     18.0         195      3250 female 2007
-    ## 4  Adelie Torgersen       NA       NA          NA        NA   <NA> 2007
-    ## 5  Adelie Torgersen     36.7     19.3         193      3450 female 2007
-    ## 6  Adelie Torgersen     39.3     20.6         190      3650   male 2007
+    ## # A tibble: 344 × 8
+    ##    species island    bill_len bill_dep flipper_len body_mass sex     year
+    ##    <fct>   <fct>        <dbl>    <dbl>       <int>     <int> <fct>  <int>
+    ##  1 Adelie  Torgersen     39.1     18.7         181      3750 male    2007
+    ##  2 Adelie  Torgersen     39.5     17.4         186      3800 female  2007
+    ##  3 Adelie  Torgersen     40.3     18           195      3250 female  2007
+    ##  4 Adelie  Torgersen     NA       NA            NA        NA <NA>    2007
+    ##  5 Adelie  Torgersen     36.7     19.3         193      3450 female  2007
+    ##  6 Adelie  Torgersen     39.3     20.6         190      3650 male    2007
+    ##  7 Adelie  Torgersen     38.9     17.8         181      3625 female  2007
+    ##  8 Adelie  Torgersen     39.2     19.6         195      4675 male    2007
+    ##  9 Adelie  Torgersen     34.1     18.1         193      3475 <NA>    2007
+    ## 10 Adelie  Torgersen     42       20.2         190      4250 <NA>    2007
+    ## # ℹ 334 more rows
+
+``` r
+# 1.2 alternative: the dim (dimension) function
+dim(peng)
+```
+
+    ## [1] 344   8
+
+``` r
+# 1.3 alternative: selectors (more advanced)
+select(peng, where(is.numeric))
+```
+
+    ## # A tibble: 344 × 5
+    ##    bill_len bill_dep flipper_len body_mass  year
+    ##       <dbl>    <dbl>       <int>     <int> <int>
+    ##  1     39.1     18.7         181      3750  2007
+    ##  2     39.5     17.4         186      3800  2007
+    ##  3     40.3     18           195      3250  2007
+    ##  4     NA       NA            NA        NA  2007
+    ##  5     36.7     19.3         193      3450  2007
+    ##  6     39.3     20.6         190      3650  2007
+    ##  7     38.9     17.8         181      3625  2007
+    ##  8     39.2     19.6         195      4675  2007
+    ##  9     34.1     18.1         193      3475  2007
+    ## 10     42       20.2         190      4250  2007
+    ## # ℹ 334 more rows
+
+``` r
+# if you want to return the exact vector of answers
+select(peng, where(is.numeric)) |> colnames()
+```
+
+    ## [1] "bill_len"    "bill_dep"    "flipper_len" "body_mass"   "year"
+
+``` r
+# 1.4 alternative (more thorough, using is.na() and filter() functions)
+# check a few specific variables for missing values using the OR operator (a vertical bar: |)
+filter(peng, is.na(sex) | is.na(bill_len) | is.na(flipper_len))
+```
+
+    ## # A tibble: 11 × 8
+    ##    species island    bill_len bill_dep flipper_len body_mass sex    year
+    ##    <fct>   <fct>        <dbl>    <dbl>       <int>     <int> <fct> <int>
+    ##  1 Adelie  Torgersen     NA       NA            NA        NA <NA>   2007
+    ##  2 Adelie  Torgersen     34.1     18.1         193      3475 <NA>   2007
+    ##  3 Adelie  Torgersen     42       20.2         190      4250 <NA>   2007
+    ##  4 Adelie  Torgersen     37.8     17.1         186      3300 <NA>   2007
+    ##  5 Adelie  Torgersen     37.8     17.3         180      3700 <NA>   2007
+    ##  6 Adelie  Dream         37.5     18.9         179      2975 <NA>   2007
+    ##  7 Gentoo  Biscoe        44.5     14.3         216      4100 <NA>   2007
+    ##  8 Gentoo  Biscoe        46.2     14.4         214      4650 <NA>   2008
+    ##  9 Gentoo  Biscoe        47.3     13.8         216      4725 <NA>   2009
+    ## 10 Gentoo  Biscoe        44.5     15.7         217      4875 <NA>   2009
+    ## 11 Gentoo  Biscoe        NA       NA            NA        NA <NA>   2009
+
+``` r
+# 1.4 alternative (VERY advanced, not taught or expected of you, given as example)
+# prints the exact number of NAs in each column
+summarise(peng, across(everything(), ~ sum(is.na(.x))))
+```
+
+    ## # A tibble: 1 × 8
+    ##   species island bill_len bill_dep flipper_len body_mass   sex  year
+    ##     <int>  <int>    <int>    <int>       <int>     <int> <int> <int>
+    ## 1       0      0        2        2           2         2    11     0
+
+``` r
+# translation: "for each column of peng, sum up the number of observations/rows which are NA"
+```
 
 ## 2) Focus on one species (filter, select, arrange)
 
-Keep only Adelie rows; store as `adelie_tbl`. Keep just: `bill_len`,
-`bill_dep`, `flipper_len`, `body_mass`, `year`. Sort descending by
-`body_mass`.
+2.1 Keep only Adelie rows; store as `adelie_tbl`.
 
-Question: about how many Adelie penguins are over 4000 g?
+2.2 Keep only: `bill_len`, `bill_dep`, `flipper_len`, `body_mass`,
+`year`.
+
+2.3 Sort descending by `body_mass`.
+
+2.4 Question: about how many Adelie penguins are over 4000 g?
 
 ``` r
-# YOUR CODE HERE
+# 2.1 
+adelie_tbl <- filter(peng, species == "Adelie") |>
+  # 2.2
+  select(bill_len, bill_dep, flipper_len, body_mass, year) |>
+  # 2.3
+  arrange(desc(body_mass))
+
+# 2.4 
+filter(adelie_tbl) |>
+  filter(body_mass > 4000) |>
+  nrow() # returns the number of rows (not the whole tibble)
 ```
+
+    ## [1] 35
 
 ## 3) Derived variable (mutate)
 
-In `adelie_tbl`, create `bill_ratio` = `bill_len` / `bill_dep`. Sort by
-`bill_ratio` (largest first).
+![](https://allisonhorst.github.io/palmerpenguins/reference/figures/culmen_depth.png)
 
-Question: what does a larger `bill_ratio` suggest?
+3.1 In `adelie_tbl`, create `bill_ratio` = `bill_len` / `bill_dep`.
+
+3.2 Sort by `bill_ratio` (largest first).
+
+3.3 Question: what does a larger `bill_ratio` suggest?
+
+- Answer: mathematically, a larger `bill_ratio` suggests that `bill_len`
+  is relatively larger than `bill_dep`. You can observe this in the
+  table with `view(adelie_tbl)`.
 
 ``` r
-# YOUR CODE HERE
+# 3.1
+adelie_tbl <- adelie_tbl |>
+  mutate(bill_ratio = bill_len / bill_dep)
+
+# 3.2
+# largest first = descending 
+arrange(adelie_tbl, desc(bill_ratio))
+```
+
+    ## # A tibble: 152 × 6
+    ##    bill_len bill_dep flipper_len body_mass  year bill_ratio
+    ##       <dbl>    <dbl>       <int>     <int> <int>      <dbl>
+    ##  1     44.1     18           210      4000  2009       2.45
+    ##  2     42.9     17.6         196      4700  2008       2.44
+    ##  3     40.9     16.8         191      3700  2008       2.43
+    ##  4     45.8     18.9         197      4150  2008       2.42
+    ##  5     40.7     17           190      3725  2009       2.39
+    ##  6     39.5     16.7         178      3250  2007       2.37
+    ##  7     40.2     17           176      3450  2009       2.36
+    ##  8     40.6     17.2         187      3475  2009       2.36
+    ##  9     37.7     16           183      3075  2009       2.36
+    ## 10     40.2     17.1         193      3400  2009       2.35
+    ## # ℹ 142 more rows
+
+``` r
+# 3.3
+# explore (opens a new tab in RStudio with the full tibble, not just first 10 rows)
+# view(adelie_tbl)
 ```
 
 ## 4) Relationship plot (scatter)
 
-Make a scatter plot of bill length vs body mass. Color points by
-species. Add a clear title and axis labels with labs(). Save your image
-to the results folder we made and use a descriptive name.
+4.1 Make a scatter plot of bill length vs body mass.
+
+- You will get a warning that there are missing values – that’s okay, we
+  knew about them
+
+4.2 Color points by species.
+
+4.3 Add a clear title and axis labels with labs().
+
+4.4 Save your image to the results folder we made and use a descriptive
+name (or the folder you’re working in if you didn’t want to or manage to
+create a results folder!)
 
 ``` r
-# YOUR CODE HERE
+# 4.1
+# go back to the full dataset, not just adelie penguins
+peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point()
+```
+
+    ## Warning: Removed 2 rows containing missing values or values outside the scale range
+    ## (`geom_point()`).
+
+![](D1_companion_guide_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+# 4.2
+peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point(aes(color = species))
+```
+
+    ## Warning: Removed 2 rows containing missing values or values outside the scale range
+    ## (`geom_point()`).
+
+![](D1_companion_guide_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+
+``` r
+# 4.3
+final_plot <- peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point(aes(color = species)) +
+  labs(title = "Relationship between Bill Length and Body Mass in Penguins",
+       x = "Bill Length (cm)", y = "Body Mass (g)",
+       color = "Species")
+
+final_plot
+```
+
+    ## Warning: Removed 2 rows containing missing values or values outside the scale range
+    ## (`geom_point()`).
+
+![](D1_companion_guide_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+
+``` r
+# 4.4
+# saving something that doesn't exist means we need to make a filename
+# fn has to end in what we want to call the new file
+
+# using here to generate a filename -- below only works if you already made a results folder!
+fn <- here('results','penguin_scatter.png')
+# if you didn't or got stuck on making the results folder, instead try:
+fn <- here('penguin_scatter.png') # should save to the working directory, ie the assignment folder we're in
+
+ggsave(filename = fn, 
+       plot = final_plot)
+```
+
+    ## Saving 7 x 5 in image
+
+    ## Warning: Removed 2 rows containing missing values or values outside the scale range
+    ## (`geom_point()`).
+
+``` r
+# check out the help
+?ggsave
 ```
