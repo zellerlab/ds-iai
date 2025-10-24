@@ -1,0 +1,198 @@
+---
+title: "Exercises for Day 1 with Possible Solutions"
+output:
+  md_document:
+    variant: gfm
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+# Setup
+
+Make sure you are in the folder you are using for the data science assignment!
+If you are not, navigate to the correct folder using the Files tab of RStudio, and select "Set As Working Directory" from the blue gear menu. (You can also do this with `setwd()` where you give a string variable as input, e.g. `setwd('/Users/yourname/Desktop/ds_iai')`.)
+
+```{r, chunk-0}
+# wd = working directory 
+getwd() # where are we working from?
+?getwd # loads the function help 
+```
+
+The chunk below is the code from Brightspace to install the required packages.
+BEFORE you run it: please make a folder the "Files" tab in the bottom right of RStudio is a folder where you will work out of for the assignment.
+In class we made one called `ds_iai` and opened a new R Markdown file inside it.
+
+```{r, chunk-0.1}
+# attach the groundhog package, to activate taking a "snapshot" of versions
+library(groundhog)
+
+# 2.3 pick october 1st as a common reference date and install the packages
+groundhog.library(c('here','tidyverse'), "2025-10-01")
+
+# if you had issues with groundhog
+# library(tidyverse)
+# library(here)
+# sessionInfo()
+```
+
+# Exercises: Penguins (Data Frames & Visualizations)
+
+Tip: you may want to copy these into a new R Markdown document to avoid lots of scrolling...
+
+Use the same verbs and plotting steps from today: `select()`, `filter()`, `mutate()`, `arrange()`, and `ggplot()` + `geom_xxx()` + `labs()`.
+
+It’s OK if plots print messages about removed rows — the dataset has some missing values.
+
+## 1) Quick scan (structure & missingness)
+
+1.1 First, save the `penguins` dataset as a tibble to a variable name of your choosing.
+
+1.2 How many rows/columns are in `penguins`?
+
+-   Answer: 344 rows and 8 cols
+
+1.3 Which variables are numeric vs. categorical?
+
+-   Numeric (int and dbl): `bill_len`, `bill_dep`,`flipper_len`,`body_mass`,`year`
+-   Categorical: `species`,`island`,`sex`
+
+1.4 Which columns visibly include missing (NA) values?
+
+```{r}
+# head(penguins)
+
+# 1.1 
+# since the penguins data frame does not have rownames, we can directly make it a tibble
+peng <- tibble(penguins)
+
+# 1.2 & 1.3 & 1.4
+# we can already read the number of rows and columns and the variable types when we print a tibble
+# we can also see the 4th row observation has some missing data, and some others are missing male/female info
+peng
+```
+
+```{r}
+# 1.2 alternative: the dim (dimension) function
+dim(peng)
+
+# 1.3 alternative: selectors (more advanced)
+select(peng, where(is.numeric))
+# if you want to return the exact vector of answers
+select(peng, where(is.numeric)) |> colnames()
+
+# 1.4 alternative (more thorough, using is.na() and filter() functions)
+# check a few specific variables for missing values using the OR operator (a vertical bar: |)
+filter(peng, is.na(sex) | is.na(bill_len) | is.na(flipper_len))
+
+# 1.4 alternative (VERY advanced, not taught or expected of you, given as example)
+# prints the exact number of NAs in each column
+summarise(peng, across(everything(), ~ sum(is.na(.x))))
+# translation: "for each column of peng, sum up the number of observations/rows which are NA"
+```
+
+## 2) Focus on one species (filter, select, arrange)
+
+2.1 Keep only Adelie rows; store as `adelie_tbl`.
+
+2.2 Keep only: `bill_len`, `bill_dep`, `flipper_len`, `body_mass`, `year`.
+
+2.3 Sort descending by `body_mass`.
+
+2.4 Question: about how many Adelie penguins are over 4000 g?
+
+```{r}
+# 2.1 
+adelie_tbl <- filter(peng, species == "Adelie") |>
+  # 2.2
+  select(bill_len, bill_dep, flipper_len, body_mass, year) |>
+  # 2.3
+  arrange(desc(body_mass))
+
+# 2.4 
+filter(adelie_tbl) |>
+  filter(body_mass > 4000) |>
+  nrow() # returns the number of rows (not the whole tibble)
+```
+
+## 3) Derived variable (mutate)
+
+![](https://allisonhorst.github.io/palmerpenguins/reference/figures/culmen_depth.png)
+
+3.1 In `adelie_tbl`, create `bill_ratio` = `bill_len` / `bill_dep`.
+
+3.2 Sort by `bill_ratio` (largest first).
+
+3.3 Question: what does a larger `bill_ratio` suggest?
+
+-   Answer: mathematically, a larger `bill_ratio` suggests that `bill_len` is relatively larger than `bill_dep`. You can observe this in the table with `view(adelie_tbl)`.
+
+```{r}
+# 3.1
+adelie_tbl <- adelie_tbl |>
+  mutate(bill_ratio = bill_len / bill_dep)
+
+# 3.2
+# largest first = descending 
+arrange(adelie_tbl, desc(bill_ratio))
+
+# 3.3
+# explore (opens a new tab in RStudio with the full tibble, not just first 10 rows)
+# view(adelie_tbl)
+```
+
+## 4) Relationship plot (scatter)
+
+4.1 Make a scatter plot of bill length vs body mass.
+
+- You will get a warning that there are missing values -- that's okay, we knew about them
+
+4.2 Color points by species.
+
+4.3 Add a clear title and axis labels with labs().
+
+4.4 Save your image to the results folder we made and use a descriptive name (or the folder you're working in if you didn't want to or manage to create a results folder!)
+
+```{r}
+# 4.1
+# go back to the full dataset, not just adelie penguins
+peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point()
+
+# 4.2
+peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point(aes(color = species))
+
+# 4.3
+final_plot <- peng |>
+  ggplot(aes(x = bill_len, y = body_mass)) +
+  geom_point(aes(color = species)) +
+  labs(title = "Relationship between Bill Length and Body Mass in Penguins",
+       x = "Bill Length (cm)", y = "Body Mass (g)",
+       color = "Species")
+
+final_plot
+
+# 4.4
+# saving something that doesn't exist means we need to make a filename
+# fn has to end in what we want to call the new file
+
+# using here to generate a filename -- below only works if you already made a results folder!
+fn <- here('results','penguin_scatter.png')
+# if you didn't or got stuck on making the results folder, instead try:
+fn <- here('penguin_scatter.png') # should save to the working directory, ie the assignment folder we're in
+
+ggsave(filename = fn, 
+       plot = final_plot)
+
+# check out the help
+?ggsave
+```
+
+```{r}
+# it's good practice to end a document like this with the sessionInfo() function
+# it produces a snapshot of the RStudio/computing environment and can also be very useful if you're having issues with packages, versions, etc
+sessionInfo()
+```
