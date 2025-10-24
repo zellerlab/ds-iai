@@ -446,3 +446,9 @@ ggsave(filename = fn,
 # check out the help
 ?ggsave
 ```
+
+```{r}
+# it's good practice to end a document like this with the sessionInfo() function
+# it produces a snapshot of the RStudio/computing environment and can also be very useful if you're having issues with packages, versions, etc
+sessionInfo()
+```

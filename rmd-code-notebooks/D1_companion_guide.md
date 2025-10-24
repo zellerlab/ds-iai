@@ -792,3 +792,43 @@ ggsave(filename = fn,
 # check out the help
 ?ggsave
 ```
+
+``` r
+# it's good practice to end a document like this with the sessionInfo() function
+# it produces a snapshot of the RStudio/computing environment and can also be very useful if you're having issues with packages, versions, etc
+sessionInfo()
+```
+
+    ## R version 4.5.1 (2025-06-13)
+    ## Platform: aarch64-apple-darwin20
+    ## Running under: macOS Sequoia 15.6.1
+    ## 
+    ## Matrix products: default
+    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+    ## 
+    ## locale:
+    ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+    ## 
+    ## time zone: Europe/Amsterdam
+    ## tzcode source: internal
+    ## 
+    ## attached base packages:
+    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## 
+    ## other attached packages:
+    ##  [1] lubridate_1.9.4 forcats_1.0.1   stringr_1.5.2   dplyr_1.1.4    
+    ##  [5] purrr_1.1.0     readr_2.1.5     tidyr_1.3.1     tibble_3.3.0   
+    ##  [9] ggplot2_4.0.0   tidyverse_2.0.0 here_1.0.2      groundhog_3.2.3
+    ## 
+    ## loaded via a namespace (and not attached):
+    ##  [1] gtable_0.3.6       compiler_4.5.1     tidyselect_1.2.1   parallel_4.5.1    
+    ##  [5] textshaping_1.0.3  systemfonts_1.3.0  scales_1.4.0       yaml_2.3.10       
+    ##  [9] fastmap_1.2.0      R6_2.6.1           labeling_0.4.3     generics_0.1.4    
+    ## [13] knitr_1.50         rprojroot_2.1.1    pillar_1.11.1      RColorBrewer_1.1-3
+    ## [17] tzdb_0.5.0         rlang_1.1.6        utf8_1.2.6         stringi_1.8.7     
+    ## [21] xfun_0.53          S7_0.2.0           timechange_0.3.0   cli_3.6.5         
+    ## [25] withr_3.0.2        magrittr_2.0.4     digest_0.6.37      grid_4.5.1        
+    ## [29] rstudioapi_0.17.1  hms_1.1.3          lifecycle_1.0.4    vctrs_0.6.5       
+    ## [33] evaluate_1.0.5     glue_1.8.0         farver_2.1.2       ragg_1.5.0        
+    ## [37] rmarkdown_2.30     tools_4.5.1        pkgconfig_2.0.3    htmltools_0.5.8.1
