@@ -12,7 +12,7 @@ e.g. `setwd('/Users/yourname/Desktop/ds_iai')`.)
 getwd() # where are we working from?
 ```
 
-    ## [1] "/Users/sxmorgan/Library/Mobile Documents/com~apple~CloudDocs/_PARA/PROJECTS/r-course-iai-lucid/rmd-exercises"
+    ## [1] "/Users/sxmorgan/Desktop/ds_iai/rmd-code-notebooks"
 
 ``` r
 ?getwd # loads the function help 
@@ -40,7 +40,7 @@ library(groundhog)
 groundhog.library(c('here','tidyverse'), "2025-10-01")
 ```
 
-    ## here() starts at /Users/sxmorgan/Library/Mobile Documents/com~apple~CloudDocs/_PARA/PROJECTS/r-course-iai-lucid
+    ## here() starts at /Users/sxmorgan/Desktop/ds_iai
 
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
     ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
