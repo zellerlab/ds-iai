@@ -1,0 +1,280 @@
+---
+title: "Day 3: From Counts to Comparisons with Microbiome Data"
+output:
+  md_document:
+    variant: gfm
+---
+
+# 0. Setup
+
+```{r}
+groundhog::groundhog.library(c("tidyverse","here"), "2025-10-01")
+
+# if that doesn't work, uncomment and try:
+# library(tidyverse)
+# library(here)
+```
+
+> **Today:** load **raw bacterial counts**, compute **relative abundance**, apply **prevalence/abundance filters**, learn **log10(x+1e-05)** transform, join count and metadata tables, make clear comparisons of bacterial relative abundances between groups of interest (e.g. CRC-CTR).
+
+# 0. Create folders
+
+```{r}
+
+# ASSUMING that here() returns whatever folder you are working out of for the assignment -- if it doesn't, FIRST navigate to and set your working directory properly! (and/or alter the code below as required to read in the metadata and count tables).
+
+# If you want futher practice reading from an organized/hierarchical folder structure, you can create subfolders in the assignment folder for code and data. In the code folder, add the helper_day3.r script and add any .tsv files to the data folder. 
+# here() # if correct, proceed
+# dir.create("data")
+# dir.create("code")
+
+# If you struggled with file so far, don't worry. We prefer you focus on the learning objectives, so feel free to keep everything related to this assignment in one folder (scripts, Rmds, data, etc). We just want you to know how to read in a file we give you, we don't care how you store and access it.
+```
+
+# 1. Load data
+
+This chunk assumes you have a subfolder named "data" in whatever folder you are working out of for the assignment (which should be returned when you call the here() function -- if not, navigate to and set your working directory! and/or alter the code below to read in the metadata and count tables).
+
+```{r}
+# read in files
+meta <- read_tsv(here("data","metadata_recoded.tsv"))
+counts <- read_tsv(here("data","yang_genus_counts.tsv")) 
+
+# Expectation: counts table has Sample_ID column + one column per bacterial count
+stopifnot("Sample_ID" %in% names(counts))
+stopifnot("Sample_ID" %in% names(meta))
+```
+
+# 2. Load helper functions
+
+```{r}
+
+# load custom functions from helper_day3 script into global environment
+source(here('code', 'helper_day3.R'))
+
+```
+
+# 3. Data transformation and pre-processing
+
+Aim: Apply common pre-processing transformations to microbiome count data.
+
+Steps: use the `counts_to_relab()` helper function to convert `counts` to relative abundances and save it as `relab`. Then apply the indicated filtering criteria using the `filter_features()` helper function. Finally, apply a log10 transform with `log_transform()`.
+
+Question: how many columns are there before and after filtering? What about bacteria? (Answer: 855 and 136, 854 and 135, respectively)
+
+```{r}
+# working with wide/"untidy" data so we can better see the impact of new transformations
+
+# convert counts to proportions 
+relab <- counts |> 
+  counts_to_relab() 
+
+# check impact on counts
+rowSums(relab[,-1])
+
+# filter choices: relab_threshold = 0.001, prevalence_threshold = 0.05
+relab_filt <- filter_features(relab, relab_threshold = 0.001, 
+                              prevalence_threshold = 0.05)
+
+# check dimension before and after
+head(relab_filt)
+
+# log transformation
+relab_log <- log_transform(relab_filt, 
+                           pseudo = 1e-05)
+
+# check impact on relative abundances
+head(relab_log)
+```
+
+# 4. Reshaping data frames
+
+Aim: Learn how to build an annotated tidy data frame suitable for visualization.
+
+Steps: From `relab_filt`, make a long, tidy data frame. Add a column that log10 transforms the relative abundances with a pseudocount of 1e-05. Join the metadata table by the common Sample_ID column.
+
+Joining and pivoting are two concepts we introduce here, worth practicing if you want/need to work with data someday: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
+
+```{r}
+# we can use mutate with a hard-coded pseudocount and bypass our function, if our data is tidy...
+
+logdat_annot <- relab_filt |>
+  # make long and tidy
+  pivot_longer(-Sample_ID,
+                      names_to = "genus",
+                      values_to = "rel_ab") |>
+  # log transfrom (mutate)
+  mutate(log10_rel_ab = log10((rel_ab + 1e-05))) |>
+  # join metadata table
+  left_join(meta, by = "Sample_ID") |>
+  # reorder columns if you like
+  select(Sample_ID, genus, rel_ab, log10_rel_ab, everything())
+
+head(logdat_annot)
+```
+
+# 4. Visualizing data: composition and comparison
+
+Aim: learn how to sort, filter, and plot data based on quantities we calculate (e.g. mean relative abundance per taxon).
+
+Steps: calculate the mean relative abundance per taxon using `summarize(mean_val = ...)` (tip: `group_by(genus)` first). Filter out the reads/abundances which were not assigned a bacterial taxon during profiling. Find the 10 genera with the highest mean relative abundance across the Yang dataset. Plot these in CRC vs CTR boxplots WITH points overlaid (hint: two different geom_s). Use `+ facet_wrap(~ genus)` to make 1 plot for each of the top 10 you identify.
+
+```{r}
+
+# get a list of top N bacteria by (raw) mean relative abundance (NOT log transformed)
+topN <- logdat_annot |>
+  # calculate the mean relative abundance per taxon (summarize across samples/observations)
+  group_by(genus) |>
+  summarise(mean_val = mean(log10_rel_ab, na.rm = TRUE)) |>
+  # sort the rows from largest (top) to smallest
+  arrange(desc(mean_val)) |>
+  # filter out the unassigned fraction
+  filter(genus != "unassigned") |>
+  # look at top 10
+  slice_head(n = 10) |>
+  # pull genus names
+  pull(genus)
+
+# save a tibble with all data for only the topN genera
+dat_top <- filter(logdat_annot, genus %in% topN)
+
+# plot case-control boxplots (with points) of top 10 most abundant bacteria 
+dat_top |>
+  ggplot(aes(x = Condition, y = log10_rel_ab, color = Condition)) +
+  geom_boxplot() +
+  geom_point(position = position_jitterdodge()) +
+  labs(y = "Log10(Relative Abundance)", x = "Sample",
+       title = "Top Bacterial Genera by Condition") +
+  facet_wrap(~ genus)
+
+```
+
+# 5. Exercises
+
+## Exercise 1 — Threshold sensitivity
+
+-   Repeat prevalence filtering with **0.05**, **0.10**, **0.20** (keep relab_threshold fixed at `0.001`).
+-   Make a small tibble reporting the number of retained features at each setting.
+-   Write a sentence summarizing the impact of prevalence filtering.
+
+```{r}
+
+# test different prevalence thresholds
+prev_05 <- filter_features(relab, relab_threshold = 0.001, 
+                           prevalence_threshold = 0.05)
+prev_10 <- filter_features(relab, relab_threshold = 0.001, 
+                           prevalence_threshold = 0.10)
+prev_20 <- filter_features(relab, relab_threshold = 0.001, 
+                           prevalence_threshold = 0.20)
+
+# create summary tibble
+threshold_summary <- tibble(
+  prevalence_threshold = c(0.05, 0.10, 0.20),
+  n_features = c(ncol(prev_05) - 1, 
+                 ncol(prev_10) - 1, 
+                 ncol(prev_20) - 1)
+)
+
+threshold_summary
+```
+
+## Exercise 2 — Filter/focus on different group of bacteria
+
+-   Look at all 4 Eubacterium taxa. (Hint: use `filter(str_detect(genus, 'Eubacterium'))`)
+-   Make **boxplot + point graphs** of their values by `Condition`.
+-   Write 2–3 sentences interpreting the pattern.
+
+```{r}
+# filter for Eubacterium taxa
+eubacterium_dat <- logdat_annot |>
+  filter(str_detect(genus, 'Eubacterium'))
+
+# check which ones we have
+unique(eubacterium_dat$genus)
+
+# plot boxplots with points
+eubacterium_dat |>
+  ggplot(aes(x = Condition, y = log10_rel_ab, color = Condition)) +
+  geom_boxplot() +
+  geom_point(position = position_jitterdodge()) +
+  labs(y = "Log10(Relative Abundance)", 
+       x = "Condition",
+       title = "Eubacterium Taxa by Condition") +
+  facet_wrap(~ genus)
+```
+
+## Exercise 3 — Top taxa by prevalence
+
+-   Calculate the prevalence per taxon (sum of values that are not 0 divided by the total number of values), similar to how we calculated the mean abundances
+-   Describe the prevalences in a sentence or two using some statistical summaries.
+-   What is the most prevalent bacteria? Do a google search and record something you learned about it.
+
+```{r}
+
+# calculate prevalence per taxon
+prevalence_summary <- logdat_annot |>
+  group_by(genus) |>
+  summarise(prevalence = sum(rel_ab > 0) / n(),
+            mean_relab = mean(rel_ab, na.rm = TRUE) ) |>
+  arrange(desc(prevalence))
+
+# summary statistics
+summary(prevalence_summary$prevalence)
+
+# most prevalent
+prevalence_summary |>
+  slice_head(n = 10)
+
+most_prevalent <- prevalence_summary |>
+  slice_head(n = 1) |>
+  pull(genus)
+
+most_prevalent
+```
+
+## Exercise 4 — Top taxa per sample (new plot type)
+
+-   Build a stacked **bar plot** of the **top 10 taxa**, maybe across a **subset of samples** (you decide how to select or filter).
+-   Save the figure to `results/`.
+
+```{r}
+# stacked bar: top bacteria per sample (of all samples)
+dat_top |>
+  ggplot(aes(Sample_ID, rel_ab, fill = genus)) +
+  geom_col() +
+  scale_fill_viridis_d() +
+  labs(title = "Top bacterial taxa (relative abundances)") +
+  theme(axis.text.x = element_blank())
+
+# labeling everything that isn't one of the top 10 bacteria as "other / unassigned"
+dat_fill <- dat_top |>
+  group_by(Sample_ID) |>
+  mutate(NA_unassigned = 1 - sum(rel_ab)) |> 
+  select(Sample_ID, NA_unassigned) |>
+  distinct() |>
+  # fill out
+  tibble(genus = "Other_Unassigned",  
+         log10_rel_ab = log10(NA_unassigned + 1e-05)) |>
+  rename(rel_ab = "NA_unassigned") |>
+  # same column order as dat_top needed
+  select(Sample_ID, rel_ab, log10_rel_ab, genus) |>
+  bind_rows(dat_top) |> 
+  arrange(Sample_ID, desc(rel_ab))
+
+# order samples
+order <- dat_fill |> 
+  filter(genus=="Other_Unassigned") |>
+  arrange(genus, desc(rel_ab)) |>
+  pull(Sample_ID) # string of IDs in order
+
+dat_ordered <- dat_fill |>
+  mutate(Sample_ID = fct_relevel(Sample_ID, order))
+
+# compositional barplots (could use some better coloring)
+dat_ordered |>
+  ggplot(aes(Sample_ID, rel_ab, fill = genus)) +
+  geom_col() +
+  scale_fill_viridis_d() +
+  labs(title = "Top bacterial taxa (relative abundances)") +
+  theme(axis.text.x = element_blank())
+```
