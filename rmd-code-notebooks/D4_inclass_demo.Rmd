@@ -1,0 +1,168 @@
+---
+title: "Day 4: Microbiome Statistics"
+output:
+  md_document:
+    variant: gfm
+---
+
+# 0. Setup
+
+Load libraries and count data
+
+```{r setup}
+# libraries
+groundhog::groundhog.library(c("tidyverse","here"), "2025-10-01")
+
+# custom functions
+source(here("code", "helper_day3.R"))
+source(here("code", "helper_day4.R"))
+
+# read in data
+meta <- read_tsv(here("data", "metadata_recoded.tsv"))
+counts_1 <- read_tsv(here("data", "yang_genus_counts.tsv"))
+```
+
+
+# 1. Effect Sizes and P-values
+
+Let's run some tests and have a look at which features are the most differentially abundant between case-control groups.
+
+```{r}
+relab_1 <- counts_to_relab(counts_1) 
+relab_1_log <- relab_1 |>
+  filter_features(relab_threshold = 0.001, prevalence_threshold = 0.05) |>
+  log_transform()
+```
+
+```{r}
+mini_meta <- select(meta, Sample_ID, Condition)
+
+# tidy + group our data frame to make the application of effect size + wilcox functions explicit
+df_tidy <- relab_1_log |>
+  pivot_longer(-Sample_ID,
+               names_to = "genus",
+               values_to = "log10_rel_ab") |>
+  left_join(mini_meta) |>
+  group_by(genus)
+
+# generalized fold changes (see helpers.R)
+fold_changes <- df_tidy |>
+  summarize(fold_change = compute_gfc(pick(log10_rel_ab, Condition)))
+arrange(fold_changes, desc(fold_change))
+
+# with wilcoxon test -> go check out helpers.R for simple wrapper adaptation
+results <- df_tidy |>
+  summarize(fold_change = compute_gfc(pick(log10_rel_ab, Condition)),
+            p_value = compute_wilcoxon(pick(log10_rel_ab, Condition))) |>
+  mutate(p_adj = p.adjust(p_value, method="fdr")) |>
+  mutate(significant = ifelse(p_adj <= 0.05, TRUE, FALSE)) 
+arrange(results, p_adj)
+```
+
+
+# 2. Visualizing data: relationships (between effect size and significance)
+
+```{r}
+p.alpha <- 0.05
+
+results |>
+  # first we need to transform the p values...
+  mutate(neglog10p = -log10(p_adj)) |>
+  ggplot(aes(x = fold_change, y = neglog10p)) +
+  geom_point(aes(color = p_adj < p.alpha), alpha = 0.75) +
+  geom_hline(yintercept = -log10(p.alpha), linetype = "dotted") +
+  labs(
+    title = "Volcano plot",
+    x = "Effect Size (gFC)",
+    y = "Significance (-log10(P_adj))",
+    color = "FDR < 0.05") +
+  scale_color_manual(values = c("grey","red")) +
+  theme_bw() 
+```
+
+Q: What is the meaning of a positive or negative effect size, given the way we calculated it (by comparing cases to controls at different quantiles)? Which bacteria are most significantly enriched in CRC, and how do you know? 
+
+# 3. Read in a second dataset
+
+```{r}
+counts_2 <- read_tsv(here("data", "zeller_genus_counts.tsv"), show_col_types = FALSE)
+relab_2 <- counts_to_relab(counts_2) 
+relab_2_log <- relab_2 |>
+  filter_features(relab_threshold = 0.001, prevalence_threshold = 0.05) |>
+  log_transform()
+```
+
+# 4. Dimensionality reduction: a global view of both datasets
+
+```{r}
+common_feats <- intersect(names(relab_1_log), names(relab_2_log))
+combined <- bind_rows(select(relab_1_log, Sample_ID, all_of(common_feats)),
+                      select(relab_2_log, Sample_ID, all_of(common_feats)))
+
+# Run PCA on log-transformed data
+pca_res <- run_pca(combined)
+
+# Join with metadata for plotting
+pca_coords <- pca_res$coords |>
+  as_tibble() |>
+  left_join(meta, by = "Sample_ID")
+
+# Plot
+pca_coords |>
+  ggplot(aes(x = PC1, y = PC2, color = Study)) +
+  geom_point(size = 3) +
+  labs(
+    x = paste0("PC1 (", round(pca_res$var_explained[1], 1), "%)"),
+    y = paste0("PC2 (", round(pca_res$var_explained[2], 1), "%)")
+  ) +
+  theme_minimal()
+
+pca_coords |>
+  ggplot(aes(x = PC1, y = PC2, color = Condition)) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("purple","orange")) +
+  labs(
+    x = paste0("PC1 (", round(pca_res$var_explained[1], 1), "%)"),
+    y = paste0("PC2 (", round(pca_res$var_explained[2], 1), "%)")
+  ) +
+  theme_minimal()
+```
+
+
+# 5. Prep for the assignment: Build a volcano plot of the second dataset
+
+```{r}
+df_tidy <- relab_2_log |>
+  pivot_longer(-Sample_ID,
+               names_to = "genus",
+               values_to = "log10_rel_ab") |>
+  left_join(mini_meta) |>
+  group_by(genus)
+
+# generalized fold changes (see helpers_day4.R)
+fold_changes <- df_tidy |>
+  summarize(fold_change = compute_gfc(pick(log10_rel_ab, Condition)))
+
+# with wilcoxon test -> go check out helpers_day4.R for simple wrapper adaptation
+results <- df_tidy |>
+  summarize(fold_change = compute_gfc(pick(log10_rel_ab, Condition)),
+            p_value = compute_wilcoxon(pick(log10_rel_ab, Condition))) |>
+  mutate(p_adj = p.adjust(p_value, method="fdr")) |>
+  mutate(significant = ifelse(p_adj <= 0.05, TRUE, FALSE)) 
+arrange(results, p_adj)
+
+results |>
+  # first we need to transform the p values...
+  mutate(neglog10p = -log10(p_adj)) |>
+  ggplot(aes(x = fold_change, y = neglog10p)) +
+  geom_point(aes(color = p_adj < p.alpha), alpha = 0.75) +
+  geom_hline(yintercept = -log10(p.alpha), linetype = "dotted") +
+  labs(
+    title = "Volcano plot",
+    x = "Effect Size (gFC)",
+    y = "Significance (-log10(P_adj))",
+    color = "FDR < 0.05") +
+  scale_color_manual(values = c("grey","red")) +
+  theme_bw() 
+```
+
